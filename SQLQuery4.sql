@@ -370,17 +370,111 @@ else 'below avg'
 end as avg_col
 from employees e1;
 
+--Q1 Assign a row number to each employee based on salary (highest first).
+
+select * ,
+row_number() over(order by salary desc) as row_number
+from employees
+
+--Q2 Assign row numbers department-wise based on salary (highest first).
+select * ,
+ROW_NUMBER()over(partition by dept_id order by salary desc) as dept_number
+from employees
+
+--Q3 Find the highest-paid employee in each department
+select *
+from (select *,
+DENSE_RANK() over(partition by dept_id order by salary desc) as rn
+from employees
+)t
+where rn=1
+
+--Q4 Find the latest joined employee in each department.
+select *
+from (
+select *,
+DENSE_RANK()over (partition by dept_id order by join_date desc)as jd
+from employees ) t
+where jd=1
 
 
+--Q5 Remove duplicate salaries and keep only one row per salary.
+select *
+from (select *,
+row_number() over (partition by salary order by emp_id) rn
+from employees)t
+where rn=1
+
+--PART 2: RANK vs DENSE_RANK 
+--Q6 Rank employees based on salary (highest first).
+select *,
+DENSE_RANK() over (order by salary desc) as rnk
+from employees
+
+--Q7 Rank employees within each department based on salary.
+select *,
+dense_rank()over(partition by dept_id order by salary desc) as rnk
+from employees
+
+--Q8 Find employees who have the 2nd highest salary overall
+select *
+from (select *,
+     DENSE_RANK()over(order by salary desc) as rnk
+	 from employees)t
+where rnk =2
+
+--Q9 Find employees who have the 2nd highest salary in each department.
+select *
+from (select *,
+    DENSE_RANK()over(partition by dept_id order by salary desc) rnk
+    from employees)t
+where rnk=2
+
+--Q10 (VERY IMPORTANT ⭐)
+--Show the difference between RANK() and DENSE_RANK() on salary.
+select *,
+ROW_NUMBER()over(order by salary desc) ron,
+dense_rank()over(order by salary desc)rnk
+from employees
 
 
+--PART 3: PARTITION BY (Q11–Q15)
+--Q11 Show employee name, salary, and department average salary.
+select emp_name ,salary,
+AVG(salary) OVER (PARTITION BY dept_id) AS dept_avg_salary
+from employees	
 
+--Q12 Show employee name, salary, and salary difference from department average.
+  select emp_name,salary,
+  salary- avg( salary) over (partition by dept_id) as salary_diff
+  from employees
 
+--Q13 Find employees whose salary is above their department average.
+select emp_name, salary ,dept_id
+from (
+     select 
+	 emp_name,salary ,dept_id,
+	 avg(salary)over (partition by dept_id) as dept_avg_salary
+	from employees)t
+where salary >dept_avg_salary
 
+--Q14 Show employee name and total sales done by that employee
+select distinct e.emp_name,
+                sum(s.sale_amount)over (partition by e.emp_id)as total_sales
+from employees e
+left join
+sales s 
+on e.emp_id=s.emp_id
 
+--Q15 For each department, show:
+--employee name ,salary
+-- rank within department
+-- department average salary
 
-
-
+select emp_name,salary,
+DENSE_RANK() over (partition by dept_id order by salary desc)as dept_rank,
+avg(salary)over (partition by dept_id)as dept_avg_salary
+from employees
 
 
 
